@@ -15,22 +15,53 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const segments = ["VIP", "ACTIVE", "SLEEPING", "LOST"];
-const templates = [
-  "vip_customer_offer",
-  "active_customer_bonus",
-  "sleeping_customer_offer",
-  "lost_customer_comeback",
-];
 
-const CampaignControlPanel = () => {
+const templateMap: Record<string, string> = {
+  VIP: "vip_customer_offer",
+  ACTIVE: "active_customer_bonus",
+  SLEEPING: "sleeping_customer_offer",
+  LOST: "lost_customer_comeback",
+};
+
+export interface CampaignRecord {
+  name: string;
+  segment: string;
+  template: string;
+  status: string;
+  sent: number;
+  date: string;
+}
+
+interface Props {
+  onCampaignSent: (record: CampaignRecord) => void;
+}
+
+const segmentCounts: Record<string, number> = {
+  VIP: 128,
+  ACTIVE: 542,
+  SLEEPING: 213,
+  LOST: 87,
+};
+
+const CampaignControlPanel = ({ onCampaignSent }: Props) => {
   const [campaignName, setCampaignName] = useState("");
   const [segment, setSegment] = useState("");
-  const [template, setTemplate] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const autoTemplate = segment ? templateMap[segment] : "";
+
   const handleSend = async () => {
+    if (!campaignName || !segment) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in campaign name and select a segment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(
@@ -41,14 +72,33 @@ const CampaignControlPanel = () => {
           body: JSON.stringify({
             trigger: "manual_campaign",
             source: "loveable_dashboard",
+            segment,
+            template: autoTemplate,
+            campaignName,
+            campaignNotes: notes,
           }),
         }
       );
       if (!res.ok) throw new Error("Request failed");
+
+      const record: CampaignRecord = {
+        name: campaignName,
+        segment,
+        template: autoTemplate,
+        status: "Running",
+        sent: segmentCounts[segment] || 0,
+        date: new Date().toISOString().split("T")[0],
+      };
+      onCampaignSent(record);
+
       toast({
         title: "Campaign started successfully 🚀",
-        description: `"${campaignName || "Untitled"}" sent to ${segment || "all"} segment.`,
+        description: `"${campaignName}" sent to ${segment} segment.`,
       });
+
+      setCampaignName("");
+      setSegment("");
+      setNotes("");
     } catch {
       toast({
         title: "Failed to start campaign",
@@ -91,22 +141,12 @@ const CampaignControlPanel = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Select Template</Label>
-            <Select value={template} onValueChange={setTemplate}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose template" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t.replace(/_/g, " ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
+        {autoTemplate && (
+          <div className="text-sm text-muted-foreground">
+            Template: <span className="font-medium text-foreground">{autoTemplate.replace(/_/g, " ")}</span> (auto-selected)
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Campaign Notes</Label>
           <Textarea
