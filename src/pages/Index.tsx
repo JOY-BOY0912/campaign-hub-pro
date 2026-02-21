@@ -4,6 +4,7 @@ import SummaryCards from "@/components/SummaryCards";
 import CampaignControlPanel from "@/components/CampaignControlPanel";
 import type { CampaignRecord } from "@/components/CampaignControlPanel";
 import CampaignStatusTable from "@/components/CampaignStatusTable";
+import CustomersDataViewer from "@/components/CustomersDataViewer";
 
 const Index = () => {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
@@ -31,6 +32,7 @@ const Index = () => {
         <SummaryCards />
         <CampaignControlPanel onCampaignSent={handleCampaignSent} />
         <CampaignStatusTable campaigns={campaigns} />
+        <CustomersDataViewer />
       </div>
     </div>
   );
