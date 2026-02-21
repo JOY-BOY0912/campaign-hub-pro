@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Users, Search, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
-interface Customer {
+export interface Customer {
   id: number;
   customer_name: string;
   phone: string;
@@ -26,30 +25,15 @@ const segmentColors: Record<string, string> = {
   LOST: "bg-[hsl(var(--lost))] text-white",
 };
 
-const CustomersDataViewer = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState(false);
-  const [search, setSearch] = useState("");
-  const { toast } = useToast();
+interface Props {
+  customers: Customer[];
+  loading: boolean;
+  fetched: boolean;
+  onFetch: () => void;
+}
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        "https://n8n.srv1302157.hstgr.cloud/webhook/customers-campagin"
-      );
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data: Customer[] = await res.json();
-      setCustomers(data);
-      setFetched(true);
-      toast({ title: "Customers loaded successfully ✅" });
-    } catch {
-      toast({ title: "Failed to load customers", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+const CustomersDataViewer = ({ customers, loading, fetched, onFetch }: Props) => {
+  const [search, setSearch] = useState("");
 
   const filtered = customers.filter(
     (c) =>
@@ -66,7 +50,7 @@ const CustomersDataViewer = () => {
           </div>
           <CardTitle className="text-lg">Customers Data</CardTitle>
         </div>
-        <Button onClick={fetchCustomers} disabled={loading}>
+        <Button onClick={onFetch} disabled={loading}>
           {loading ? (
             <span className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full inline-block" />
           ) : (
