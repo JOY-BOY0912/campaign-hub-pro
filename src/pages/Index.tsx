@@ -1,13 +1,45 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Megaphone } from "lucide-react";
 import SummaryCards from "@/components/SummaryCards";
 import CampaignControlPanel from "@/components/CampaignControlPanel";
 import type { CampaignRecord } from "@/components/CampaignControlPanel";
 import CampaignStatusTable from "@/components/CampaignStatusTable";
-import CustomersDataViewer from "@/components/CustomersDataViewer";
+import CustomersDataViewer, { type Customer } from "@/components/CustomersDataViewer";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+  const { toast } = useToast();
+
+  const segmentCounts = useMemo(() => {
+    const counts = { VIP: 0, ACTIVE: 0, SLEEPING: 0, LOST: 0 };
+    customers.forEach((c) => {
+      const key = c.segment?.toUpperCase() as keyof typeof counts;
+      if (key in counts) counts[key]++;
+    });
+    return counts;
+  }, [customers]);
+
+  const fetchCustomers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "https://n8n.srv1302157.hstgr.cloud/webhook/customers-campagin"
+      );
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data: Customer[] = await res.json();
+      setCustomers(data);
+      setFetched(true);
+      toast({ title: "Customers loaded successfully ✅" });
+    } catch {
+      toast({ title: "Failed to load customers", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCampaignSent = (record: CampaignRecord) => {
     setCampaigns((prev) => [record, ...prev]);
@@ -29,10 +61,15 @@ const Index = () => {
             </p>
           </div>
         </div>
-        <SummaryCards />
+        <SummaryCards counts={segmentCounts} />
         <CampaignControlPanel onCampaignSent={handleCampaignSent} />
         <CampaignStatusTable campaigns={campaigns} />
-        <CustomersDataViewer />
+        <CustomersDataViewer
+          customers={customers}
+          loading={loading}
+          fetched={fetched}
+          onFetch={fetchCustomers}
+        />
       </div>
     </div>
   );
